@@ -212,11 +212,23 @@ def main() -> None:
                              in_chans=3, pretrained=False)
 
     ckpt = torch.load(args.checkpoint, map_location=device, weights_only=False)
-    model.load_state_dict(ckpt["model_state_dict"])
+    # Support both centralized checkpoints (model_state_dict) and
+    # federated checkpoints (global_model_state)
+    if "model_state_dict" in ckpt:
+        state_dict = ckpt["model_state_dict"]
+        epoch_info = ckpt.get("epoch", -1)
+        val_acc_info = ckpt.get("val_acc", "N/A")
+    elif "global_model_state" in ckpt:
+        state_dict = ckpt["global_model_state"]
+        epoch_info = ckpt.get("round", -1)
+        val_acc_info = ckpt.get("global_metrics", {}).get("bal_acc", "N/A")
+    else:
+        raise KeyError(f"Checkpoint has neither 'model_state_dict' nor 'global_model_state'. Keys: {list(ckpt.keys())}")
+    model.load_state_dict(state_dict)
     model.to(device)
     model.eval()
 
-    logger.info("Loaded epoch %d, val_acc=%s", ckpt['epoch'] + 1, ckpt.get('val_acc', 'N/A'))
+    logger.info("Loaded round/epoch %d, val_acc/bal_acc=%s", epoch_info + 1, val_acc_info)
 
     # Dataset
     if args.split == "test":
