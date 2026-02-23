@@ -41,7 +41,7 @@ import numpy as np
 import pandas as pd
 import torch
 import torch.nn as nn
-from sklearn.metrics import balanced_accuracy_score
+from sklearn.metrics import balanced_accuracy_score, precision_recall_fscore_support, roc_auc_score, average_precision_score
 from sklearn.model_selection import StratifiedShuffleSplit
 from torch.utils.data import DataLoader, Subset, WeightedRandomSampler
 from torchvision import transforms
@@ -169,7 +169,7 @@ def train_client(
     local_epochs: int,
     lr: float,
     weight_decay: float,
-) -> OrderedDict:
+) -> tuple[OrderedDict, Dict]:
     """
     Train *model* locally for *local_epochs* on *loader*.
 
@@ -196,8 +196,15 @@ def train_client(
     warmup_steps = steps_per_epoch * min(WARMUP_EPOCHS, local_epochs)
     scheduler = get_cosine_schedule_with_warmup(optimizer, warmup_steps, total_steps)
 
+    # GradScaler is needed only for float16; bfloat16 doesn't need it
     use_scaler = device.type == "cuda" and amp_dtype == torch.float16
     scaler = torch.amp.GradScaler() if use_scaler else None
+
+    # Metric accumulators
+    total_loss = 0.0
+    all_probs: list = []
+    all_preds: list = []
+    all_labels: list = []
 
     for epoch in range(local_epochs):
         for images, meta, labels in loader:
@@ -225,12 +232,55 @@ def train_client(
                 torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
                 optimizer.step()
 
+            # --- accumulate metrics for this batch -----------------
+            batch_size = labels.size(0)
+            total_loss += loss.item() * batch_size
+            with torch.no_grad():
+                probs_batch = torch.softmax(logits, dim=1).cpu().numpy()
+                preds_batch = probs_batch.argmax(axis=1)
+            all_probs.append(probs_batch)
+            all_preds.append(preds_batch)
+            all_labels.append(labels.cpu().numpy())
+
             scheduler.step()
 
     # Return state-dict on CPU to avoid holding many copies on GPU
-    return OrderedDict(
-        (k, v.cpu()) for k, v in model.state_dict().items()
-    )
+    preds = np.concatenate(all_preds) if len(all_preds) > 0 else np.array([], dtype=int)
+    labs = np.concatenate(all_labels) if len(all_labels) > 0 else np.array([], dtype=int)
+    probs = np.concatenate(all_probs) if len(all_probs) > 0 else np.zeros((0, NUM_CLASSES))
+
+    train_loss = total_loss / max(1, len(labs)) if labs.size > 0 else 0.0
+    acc = float((preds == labs).mean()) if labs.size > 0 else 0.0
+    bal_acc = float(balanced_accuracy_score(labs, preds)) if labs.size > 0 else 0.0
+
+    p, r, f1, _ = precision_recall_fscore_support(labs, preds, average="macro", zero_division=0) if labs.size > 0 else (0.0, 0.0, 0.0, None)
+
+    # AUC / AP (multiclass) — may fail if a class has no positives
+    try:
+        y_true_oh = np.eye(NUM_CLASSES, dtype=np.int64)[labs]
+        roc_auc = float(roc_auc_score(y_true_oh, probs, average="macro", multi_class="ovr")) if probs.size > 0 else float("nan")
+    except Exception:
+        roc_auc = float("nan")
+
+    try:
+        ap = float(average_precision_score(y_true_oh, probs, average="macro")) if probs.size > 0 else float("nan")
+    except Exception:
+        ap = float("nan")
+
+    metrics = {
+        "train_loss": train_loss,
+        "acc": acc,
+        "bal_acc": bal_acc,
+        "precision": float(p),
+        "recall": float(r),
+        "f1": float(f1),
+        "roc_auc": roc_auc,
+        "avg_precision": ap,
+        "num_samples": int(labs.size),
+    }
+
+    state = OrderedDict((k, v.cpu()) for k, v in model.state_dict().items())
+    return state, metrics
 
 
 # ====================================================================== #
@@ -253,6 +303,7 @@ def validate(
     total_loss = 0.0
     all_preds: List[np.ndarray] = []
     all_labels: List[np.ndarray] = []
+    all_probs: List[np.ndarray] = []
 
     for images, meta, labels in loader:
         images = images.to(device, non_blocking=True)
@@ -266,23 +317,51 @@ def validate(
             loss = criterion(logits, labels)
 
         total_loss += loss.item() * labels.size(0)
-        all_preds.append(logits.argmax(dim=1).cpu().numpy())
+        probs = torch.softmax(logits, dim=1).cpu().numpy()
+        all_probs.append(probs)
+        all_preds.append(probs.argmax(axis=1))
         all_labels.append(labels.cpu().numpy())
 
-    preds  = np.concatenate(all_preds)
-    labels = np.concatenate(all_labels)
+    preds  = np.concatenate(all_preds) if len(all_preds) > 0 else np.array([], dtype=int)
+    labels = np.concatenate(all_labels) if len(all_labels) > 0 else np.array([], dtype=int)
+    probs = np.concatenate(all_probs) if len(all_probs) > 0 else np.zeros((0, NUM_CLASSES))
     n = len(labels)
 
-    acc     = float((preds == labels).mean())
-    bal_acc = float(balanced_accuracy_score(labels, preds))
-    avg_loss = total_loss / n
+    avg_loss = total_loss / max(1, n)
+    acc = float((preds == labels).mean()) if n > 0 else 0.0
+    bal_acc = float(balanced_accuracy_score(labels, preds)) if n > 0 else 0.0
 
     per_class = {}
     for c in range(NUM_CLASSES):
         mask = labels == c
         per_class[CLASSES[c]] = float((preds[mask] == labels[mask]).mean()) if mask.sum() > 0 else 0.0
 
-    return {"loss": avg_loss, "acc": acc, "bal_acc": bal_acc, "per_class": per_class}
+    # Precision / Recall / F1 (macro)
+    p, r, f1, _ = precision_recall_fscore_support(labels, preds, average="macro", zero_division=0) if n > 0 else (0.0, 0.0, 0.0, None)
+
+    # AUC / AP (multiclass) — robust handling
+    try:
+        y_true_oh = np.eye(NUM_CLASSES, dtype=np.int64)[labels]
+        roc_auc = float(roc_auc_score(y_true_oh, probs, average="macro", multi_class="ovr")) if probs.size > 0 else float("nan")
+    except Exception:
+        roc_auc = float("nan")
+
+    try:
+        ap = float(average_precision_score(y_true_oh, probs, average="macro")) if probs.size > 0 else float("nan")
+    except Exception:
+        ap = float("nan")
+
+    return {
+        "loss": avg_loss,
+        "acc": acc,
+        "bal_acc": bal_acc,
+        "per_class": per_class,
+        "precision": float(p),
+        "recall": float(r),
+        "f1": float(f1),
+        "roc_auc": roc_auc,
+        "avg_precision": ap,
+    }
 
 
 # ====================================================================== #
@@ -317,7 +396,14 @@ def main() -> None:
     #  Device & AMP                                                       #
     # ------------------------------------------------------------------ #
     if args.device:
+        # Honour user request but validate availability for CUDA/MPS
         device = torch.device(args.device)
+        if device.type == "cuda" and not torch.cuda.is_available():
+            print(f"Warning: requested device {args.device} not available; falling back to CPU")
+            device = torch.device("cpu")
+        if device.type == "mps" and not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
+            print(f"Warning: requested device {args.device} not available; falling back to CPU")
+            device = torch.device("cpu")
     elif torch.cuda.is_available():
         device = torch.device("cuda")
     elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
@@ -325,7 +411,9 @@ def main() -> None:
     else:
         device = torch.device("cpu")
 
-    amp_dtype = torch.float16 if device.type == "cuda" else torch.float32
+    # bfloat16 is preferred on all modern NVIDIA GPUs (Ampere/Ada/Hopper)
+    # — more numerically stable than float16 and natively supported on L40S.
+    amp_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
 
     # ------------------------------------------------------------------ #
     #  Banner                                                             #
@@ -335,8 +423,14 @@ def main() -> None:
     print(f"{'='*66}")
     print(f"  Device           : {device}")
     if device.type == "cuda":
-        print(f"  GPU              : {torch.cuda.get_device_name(device)}")
-        print(f"  VRAM             : {torch.cuda.get_device_properties(device).total_memory / 1e9:.1f} GB")
+        try:
+            props = torch.cuda.get_device_properties(device)
+            print(f"  GPU              : {props.name}")
+            print(f"  VRAM             : {props.total_memory / 1e9:.1f} GB")
+            print(f"  SM count         : {props.multi_processor_count}")
+            print(f"  BF16 native      : {torch.cuda.is_bf16_supported()}")
+        except Exception as e:
+            print(f"  GPU info unavailable: {e}")
     print(f"  AMP dtype        : {amp_dtype}")
     print(f"  Clients          : {args.num_clients}")
     print(f"  Rounds           : {args.rounds}")
@@ -496,7 +590,7 @@ def main() -> None:
             )
 
             # --- 3. Local training ------------------------------------ #
-            updated_sd = train_client(
+            updated_sd, train_metrics = train_client(
                 model=client_model,
                 loader=client_loader,
                 criterion=criterion,
@@ -511,6 +605,13 @@ def main() -> None:
 
             # Persist full client state (including updated Group C)
             client_states[k] = updated_sd
+
+            # Log per-client training summary
+            print(
+                f"  Client {k}: train_samples={train_metrics['num_samples']} "
+                f"loss={train_metrics['train_loss']:.4f} acc={train_metrics['acc']:.4f} "
+                f"bal_acc={train_metrics['bal_acc']:.4f} f1={train_metrics['f1']:.4f} roc_auc={train_metrics['roc_auc']:.4f}"
+            )
 
             # Free GPU memory from this client's model
             del client_model
@@ -592,7 +693,8 @@ def main() -> None:
         # --- 7. Logging ----------------------------------------------- #
         print(
             f"Round {rnd+1:>3}/{args.rounds} | "
-            f"Global Acc {global_metrics['acc']:.4f}  BalAcc {global_metrics['bal_acc']:.4f} | "
+            f"Global Acc {global_metrics['acc']:.4f}  BalAcc {global_metrics['bal_acc']:.4f} "
+            f"F1 {global_metrics.get('f1', 0.0):.4f}  AUC {global_metrics.get('roc_auc', float('nan')):.4f} | "
             f"Worst-Client Acc {worst_acc:.4f}  BalAcc {worst_bal_acc:.4f} | "
             f"Std Acc {std_acc:.4f}  BalAcc {std_bal_acc:.4f} | "
             f"{elapsed:.0f}s"

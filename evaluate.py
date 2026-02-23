@@ -21,6 +21,7 @@ from sklearn.metrics import (
     classification_report,
     confusion_matrix,
 )
+from sklearn.metrics import precision_recall_fscore_support, roc_auc_score, average_precision_score
 from torch.utils.data import DataLoader
 from torchvision import transforms
 from tqdm import tqdm
@@ -162,7 +163,8 @@ def main() -> None:
     else:
         device = torch.device("cpu")
 
-    amp_dtype = torch.float16 if device.type == "cuda" else torch.float32
+    # bfloat16 is preferred on all Ampere / Ada / Hopper GPUs (L40S, A100, H100)
+    amp_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
 
     print(f"Device     : {device}")
     print(f"Checkpoint : {args.checkpoint}")
@@ -216,11 +218,29 @@ def main() -> None:
     top1 = (all_preds == all_labels).mean()
     bal = balanced_accuracy_score(all_labels, all_preds)
 
+    # Precision / Recall / F1 (macro)
+    p, r, f1, _ = precision_recall_fscore_support(all_labels, all_preds, average="macro", zero_division=0)
+
+    # AUC / AP (multiclass)
+    try:
+        y_true_oh = np.eye(NUM_CLASSES, dtype=np.int64)[all_labels]
+        roc_auc = float(roc_auc_score(y_true_oh, all_probs, average="macro", multi_class="ovr"))
+    except Exception:
+        roc_auc = float("nan")
+
+    try:
+        ap = float(average_precision_score(y_true_oh, all_probs, average="macro"))
+    except Exception:
+        ap = float("nan")
+
     print(f"\n{'='*60}")
     print(f"  Results on {args.split} set ({len(all_labels)} samples)")
     print(f"{'='*60}")
     print(f"  Top-1 Accuracy    : {top1:.4f}  ({top1*100:.2f}%)")
     print(f"  Balanced Accuracy : {bal:.4f}  ({bal*100:.2f}%)")
+    print(f"  Macro F1          : {f1:.4f}")
+    print(f"  Macro ROC-AUC     : {roc_auc:.4f}")
+    print(f"  Macro AvgPrecision: {ap:.4f}")
     print()
     print("Classification Report:")
     print(classification_report(all_labels, all_preds, target_names=CLASSES, digits=4))
