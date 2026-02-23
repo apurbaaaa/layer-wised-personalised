@@ -24,6 +24,9 @@ Usage (local Mac):
 from __future__ import annotations
 
 import argparse
+import datetime
+import json
+import logging
 import math
 import os
 import random
@@ -43,6 +46,9 @@ from tqdm import tqdm
 
 from dataset import CLASSES, ISICDataset, compute_class_weights
 from model import build_isic_model
+
+# Module-level logger — configured in main() via setup_logging()
+logger = logging.getLogger(__name__)
 
 # ------------------------------------------------------------------ #
 #  Paths                                                              #
@@ -71,6 +77,41 @@ SEED = 42
 VAL_FRAC = 0.15
 MIXUP_ALPHA = 0.2
 PREFETCH_FACTOR = 4      # pipeline data loading
+LOG_DIR = Path(__file__).resolve().parent / "logs"
+
+
+# ------------------------------------------------------------------ #
+#  Logging setup                                                      #
+# ------------------------------------------------------------------ #
+def setup_logging(run_name: str = "train") -> None:
+    """
+    Configure the module logger to write to both the console and a
+    timestamped log file under LOG_DIR.
+
+    Format:  [2026-02-23 14:05:00] [INFO    ] message
+    """
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file  = LOG_DIR / f"{run_name}_{timestamp}.log"
+
+    fmt = logging.Formatter(
+        "[%(asctime)s] [%(levelname)-8s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    ch = logging.StreamHandler()              # console
+    ch.setFormatter(fmt)
+
+    fh = logging.FileHandler(log_file, encoding="utf-8")  # file
+    fh.setFormatter(fmt)
+
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()                   # avoid duplicate handlers on re-run
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+    logger.propagate = False
+
+    logger.info("Run log saved to: %s", log_file)
 
 
 # ------------------------------------------------------------------ #
@@ -317,6 +358,8 @@ def main() -> None:
     args = parser.parse_args()
 
     seed_everything(SEED)
+    setup_logging("train")
+    logger.info("Args: %s", json.dumps(vars(args), indent=2))
 
     # ---- Device -------------------------------------------------- #
     if args.device:
@@ -335,21 +378,22 @@ def main() -> None:
     else:
         amp_dtype = torch.float32
 
-    print(f"{'='*60}")
-    print(f"  ISICSkinModel Training")
-    print(f"{'='*60}")
-    print(f"  Device       : {device}")
+    sep = "=" * 60
+    logger.info(sep)
+    logger.info("  ISICSkinModel Training")
+    logger.info(sep)
+    logger.info("  Device       : %s", device)
     if device.type == "cuda":
-        print(f"  GPU          : {torch.cuda.get_device_name(device)}")
-        print(f"  VRAM         : {torch.cuda.get_device_properties(device).total_memory / 1e9:.1f} GB")
-    print(f"  AMP dtype    : {amp_dtype}")
-    print(f"  Batch size   : {args.batch_size} x {args.accum_steps} = {args.batch_size * args.accum_steps}")
-    print(f"  LR           : {args.lr}")
-    print(f"  Epochs       : {args.epochs}")
-    print(f"  Freeze bb    : {args.freeze_backbone}")
-    print(f"  Compile      : {args.compile}")
-    print(f"  Mixup        : {args.mixup}")
-    print(f"{'='*60}")
+        logger.info("  GPU          : %s", torch.cuda.get_device_name(device))
+        logger.info("  VRAM         : %.1f GB", torch.cuda.get_device_properties(device).total_memory / 1e9)
+    logger.info("  AMP dtype    : %s", amp_dtype)
+    logger.info("  Batch size   : %d x %d = %d", args.batch_size, args.accum_steps, args.batch_size * args.accum_steps)
+    logger.info("  LR           : %g", args.lr)
+    logger.info("  Epochs       : %d", args.epochs)
+    logger.info("  Freeze bb    : %s", args.freeze_backbone)
+    logger.info("  Compile      : %s", args.compile)
+    logger.info("  Mixup        : %s", args.mixup)
+    logger.info(sep)
 
     # ---- Data ---------------------------------------------------- #
     gt = pd.read_csv(GT_CSV)
@@ -367,8 +411,8 @@ def main() -> None:
         transform=get_val_transform(), indices=val_idx,
     )
 
-    print(f"  Train samples: {len(train_ds)}")
-    print(f"  Val samples  : {len(val_ds)}")
+    logger.info("  Train samples: %d", len(train_ds))
+    logger.info("  Val samples  : %d", len(val_ds))
 
     # Weighted sampler
     use_weighted = not args.no_weighted_sampling
@@ -406,14 +450,14 @@ def main() -> None:
     if args.freeze_backbone:
         for param in model.backbone.parameters():
             param.requires_grad = False
-        print("  Backbone FROZEN")
+        logger.info("  Backbone FROZEN")
 
     total_params = sum(p.numel() for p in model.parameters()) / 1e6
     train_params = sum(p.numel() for p in model.parameters() if p.requires_grad) / 1e6
-    print(f"  Params       : {total_params:.1f}M total, {train_params:.1f}M trainable")
+    logger.info("  Params       : %.1fM total, %.1fM trainable", total_params, train_params)
 
     if args.compile and device.type == "cuda":
-        print("  Compiling model ...")
+        logger.info("  Compiling model ...")
         model = torch.compile(model)
 
     # ---- Loss ---------------------------------------------------- #
@@ -463,11 +507,11 @@ def main() -> None:
         start_epoch = ckpt["epoch"] + 1
         best_val_acc = ckpt.get("best_val_acc", 0.0)
         best_bal_acc = ckpt.get("best_bal_acc", 0.0)
-        print(f"  Resumed from epoch {start_epoch}, best_val_acc={best_val_acc:.4f}")
+        logger.info("Resumed from epoch %d, best_val_acc=%.4f", start_epoch, best_val_acc)
 
     # ---- Training Loop ------------------------------------------- #
     CKPT_DIR.mkdir(parents=True, exist_ok=True)
-    print(f"\n  Starting training ...\n")
+    logger.info("Starting training — %d epochs", args.epochs)
 
     for epoch in range(start_epoch, args.epochs):
         t0 = time.time()
@@ -488,14 +532,12 @@ def main() -> None:
             torch.mps.synchronize()
         elapsed = time.time() - t0
 
-        print(
-            f"Epoch {epoch+1:>2}/{args.epochs} | "
-            f"Train Loss {train_loss:.4f}  Acc {train_acc:.4f} | "
-            f"Val Loss {val_loss:.4f}  Acc {val_acc:.4f}  BalAcc {bal_acc:.4f} | "
-            f"{elapsed:.0f}s"
+        logger.info(
+            "Epoch %2d/%d | Train Loss=%.4f Acc=%.4f | Val Loss=%.4f Acc=%.4f BalAcc=%.4f | %.0fs",
+            epoch + 1, args.epochs, train_loss, train_acc, val_loss, val_acc, bal_acc, elapsed,
         )
-        pc_str = " | ".join(f"{k}:{v:.2f}" for k, v in per_class.items())
-        print(f"  Per-class: {pc_str}")
+        pc_str = "  ".join(f"{cls}={v:.3f}" for cls, v in per_class.items())
+        logger.info("  [Per-class] %s", pc_str)
 
         is_best = val_acc > best_val_acc
         is_best_bal = bal_acc > best_bal_acc
@@ -519,17 +561,18 @@ def main() -> None:
         torch.save(state, CKPT_DIR / "last.pt")
         if is_best:
             torch.save(state, CKPT_DIR / "best.pt")
-            print(f"  ** New best val acc: {best_val_acc:.4f} **")
+            logger.info("** New best val acc: %.4f **", best_val_acc)
         if is_best_bal:
             torch.save(state, CKPT_DIR / "best_balanced.pt")
-            print(f"  ** New best balanced acc: {best_bal_acc:.4f} **")
+            logger.info("** New best balanced acc: %.4f **", best_bal_acc)
 
-    print(f"\n{'='*60}")
-    print(f"  Training complete!")
-    print(f"  Best val accuracy     : {best_val_acc:.4f}")
-    print(f"  Best balanced accuracy: {best_bal_acc:.4f}")
-    print(f"  Checkpoints: {CKPT_DIR}")
-    print(f"{'='*60}")
+    sep = "=" * 60
+    logger.info(sep)
+    logger.info("  Training complete!")
+    logger.info("  Best val accuracy     : %.4f", best_val_acc)
+    logger.info("  Best balanced accuracy: %.4f", best_bal_acc)
+    logger.info("  Checkpoints: %s", CKPT_DIR)
+    logger.info(sep)
 
 
 if __name__ == "__main__":

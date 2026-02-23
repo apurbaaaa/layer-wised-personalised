@@ -10,6 +10,9 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import datetime
+import json
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -29,12 +32,42 @@ from tqdm import tqdm
 from dataset import CLASSES, ISICDataset
 from model import build_isic_model
 
+# Module-level logger — configured in main() via setup_logging()
+logger = logging.getLogger(__name__)
+
 DATA_DIR = Path(__file__).resolve().parent / "data"
 CKPT_DIR = Path(__file__).resolve().parent / "checkpoints"
 
 IMG_SIZE = 384
 NUM_CLASSES = 8
 METADATA_DIM = 13
+LOG_DIR = Path(__file__).resolve().parent / "logs"
+
+
+# ------------------------------------------------------------------ #
+#  Logging setup                                                      #
+# ------------------------------------------------------------------ #
+def setup_logging(run_name: str = "evaluate") -> None:
+    """Configure the module logger to write to console and a timestamped log file."""
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file  = LOG_DIR / f"{run_name}_{timestamp}.log"
+
+    fmt = logging.Formatter(
+        "[%(asctime)s] [%(levelname)-8s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    ch = logging.StreamHandler()
+    ch.setFormatter(fmt)
+    fh = logging.FileHandler(log_file, encoding="utf-8")
+    fh.setFormatter(fmt)
+
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+    logger.propagate = False
+    logger.info("Run log saved to: %s", log_file)
 
 
 def get_test_transform() -> transforms.Compose:
@@ -153,6 +186,9 @@ def main() -> None:
                         help="Use test-time augmentation (4x)")
     args = parser.parse_args()
 
+    setup_logging("evaluate")
+    logger.info("Args: %s", json.dumps(vars(args), indent=2))
+
     # Device
     if args.device:
         device = torch.device(args.device)
@@ -166,10 +202,10 @@ def main() -> None:
     # A40 uses float16 (Ampere; GradScaler handles dynamic loss scaling)
     amp_dtype = torch.float16 if device.type == "cuda" else torch.float32
 
-    print(f"Device     : {device}")
-    print(f"Checkpoint : {args.checkpoint}")
-    print(f"Split      : {args.split}")
-    print(f"TTA        : {args.tta}")
+    logger.info("Device     : %s", device)
+    logger.info("Checkpoint : %s", args.checkpoint)
+    logger.info("Split      : %s", args.split)
+    logger.info("TTA        : %s", args.tta)
 
     # Load model
     model = build_isic_model(num_classes=NUM_CLASSES, metadata_dim=METADATA_DIM,
@@ -180,7 +216,7 @@ def main() -> None:
     model.to(device)
     model.eval()
 
-    print(f"Loaded epoch {ckpt['epoch']+1}, val_acc={ckpt.get('val_acc', 'N/A')}")
+    logger.info("Loaded epoch %d, val_acc=%s", ckpt['epoch'] + 1, ckpt.get('val_acc', 'N/A'))
 
     # Dataset
     if args.split == "test":
@@ -233,19 +269,19 @@ def main() -> None:
     except Exception:
         ap = float("nan")
 
-    print(f"\n{'='*60}")
-    print(f"  Results on {args.split} set ({len(all_labels)} samples)")
-    print(f"{'='*60}")
-    print(f"  Top-1 Accuracy    : {top1:.4f}  ({top1*100:.2f}%)")
-    print(f"  Balanced Accuracy : {bal:.4f}  ({bal*100:.2f}%)")
-    print(f"  Macro F1          : {f1:.4f}")
-    print(f"  Macro ROC-AUC     : {roc_auc:.4f}")
-    print(f"  Macro AvgPrecision: {ap:.4f}")
-    print()
-    print("Classification Report:")
-    print(classification_report(all_labels, all_preds, target_names=CLASSES, digits=4))
-    print("Confusion Matrix:")
-    print(confusion_matrix(all_labels, all_preds))
+    sep = "=" * 60
+    logger.info(sep)
+    logger.info("  Results on %s set (%d samples)", args.split, len(all_labels))
+    logger.info(sep)
+    logger.info("  Top-1 Accuracy    : %.4f  (%.2f%%)", top1, top1 * 100)
+    logger.info("  Balanced Accuracy : %.4f  (%.2f%%)", bal, bal * 100)
+    logger.info("  Macro F1          : %.4f", f1)
+    logger.info("  Macro ROC-AUC     : %.4f", roc_auc)
+    logger.info("  Macro AvgPrecision: %.4f", ap)
+    logger.info("")
+    logger.info("Classification Report:\n%s",
+                classification_report(all_labels, all_preds, target_names=CLASSES, digits=4))
+    logger.info("Confusion Matrix:\n%s", confusion_matrix(all_labels, all_preds))
 
 
 if __name__ == "__main__":

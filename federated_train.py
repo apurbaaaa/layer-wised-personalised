@@ -29,6 +29,9 @@ from __future__ import annotations
 
 import argparse
 import copy
+import datetime
+import json
+import logging
 import math
 import os
 import random
@@ -57,6 +60,9 @@ from federated_utils import (
 )
 from model import build_isic_model
 
+# Module-level logger — configured in main() via setup_logging()
+logger = logging.getLogger(__name__)
+
 # ====================================================================== #
 #  Paths                                                                  #
 # ====================================================================== #
@@ -82,6 +88,41 @@ NUM_WORKERS   = 8
 PREFETCH      = 4
 BATCH_SIZE    = 32
 EPSILON       = 1e-6
+LOG_DIR       = Path(__file__).resolve().parent / "logs"
+
+
+# ====================================================================== #
+#  Logging setup                                                          #
+# ====================================================================== #
+def setup_logging(run_name: str = "federated") -> None:
+    """
+    Configure the module logger to write to both the console and a
+    timestamped log file under LOG_DIR.
+
+    Format:  [2026-02-23 14:05:00] [INFO    ] message
+    """
+    LOG_DIR.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    log_file  = LOG_DIR / f"{run_name}_{timestamp}.log"
+
+    fmt = logging.Formatter(
+        "[%(asctime)s] [%(levelname)-8s] %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+    ch = logging.StreamHandler()              # console
+    ch.setFormatter(fmt)
+
+    fh = logging.FileHandler(log_file, encoding="utf-8")  # file
+    fh.setFormatter(fmt)
+
+    logger.setLevel(logging.INFO)
+    logger.handlers.clear()                   # avoid duplicate handlers on re-run
+    logger.addHandler(ch)
+    logger.addHandler(fh)
+    logger.propagate = False
+
+    logger.info(f"Run log saved to: {log_file}")
 
 
 # ====================================================================== #
@@ -390,6 +431,8 @@ def main() -> None:
     args = parser.parse_args()
 
     seed_everything(SEED)
+    setup_logging("federated")
+    logger.info("Args: %s", json.dumps(vars(args), indent=2))
 
     # ------------------------------------------------------------------ #
     #  Device & AMP                                                       #
@@ -398,10 +441,10 @@ def main() -> None:
         # Honour user request but validate availability for CUDA/MPS
         device = torch.device(args.device)
         if device.type == "cuda" and not torch.cuda.is_available():
-            print(f"Warning: requested device {args.device} not available; falling back to CPU")
+            logger.warning("Requested device %s not available; falling back to CPU", args.device)
             device = torch.device("cpu")
         if device.type == "mps" and not (hasattr(torch.backends, "mps") and torch.backends.mps.is_available()):
-            print(f"Warning: requested device {args.device} not available; falling back to CPU")
+            logger.warning("Requested device %s not available; falling back to CPU", args.device)
             device = torch.device("cpu")
     elif torch.cuda.is_available():
         device = torch.device("cuda")
@@ -416,29 +459,30 @@ def main() -> None:
     # ------------------------------------------------------------------ #
     #  Banner                                                             #
     # ------------------------------------------------------------------ #
-    print(f"\n{'='*66}")
-    print(f"  Structure-Aware Personalized Federated Learning — SwinV2")
-    print(f"{'='*66}")
-    print(f"  Device           : {device}")
+    sep = "=" * 66
+    logger.info(sep)
+    logger.info("  Structure-Aware Personalized Federated Learning — SwinV2")
+    logger.info(sep)
+    logger.info("  Device           : %s", device)
     if device.type == "cuda":
         try:
             props = torch.cuda.get_device_properties(device)
-            print(f"  GPU              : {props.name}")
-            print(f"  VRAM             : {props.total_memory / 1e9:.1f} GB")
-            print(f"  SM count         : {props.multi_processor_count}")
-            print(f"  BF16 native      : {torch.cuda.is_bf16_supported()}")
+            logger.info("  GPU              : %s", props.name)
+            logger.info("  VRAM             : %.1f GB", props.total_memory / 1e9)
+            logger.info("  SM count         : %d", props.multi_processor_count)
+            logger.info("  BF16 native      : %s", torch.cuda.is_bf16_supported())
         except Exception as e:
-            print(f"  GPU info unavailable: {e}")
-    print(f"  AMP dtype        : {amp_dtype}")
-    print(f"  Clients          : {args.num_clients}")
-    print(f"  Rounds           : {args.rounds}")
-    print(f"  Local epochs     : {args.local_epochs}")
-    print(f"  Client fraction  : {args.client_frac}")
-    print(f"  Dirichlet α      : {args.dirichlet_alpha}")
-    print(f"  Drift weighting  : {args.drift_weighting}")
-    print(f"  Batch size       : {args.batch_size}")
-    print(f"  LR               : {args.lr}")
-    print(f"{'='*66}\n")
+            logger.warning("  GPU info unavailable: %s", e)
+    logger.info("  AMP dtype        : %s", amp_dtype)
+    logger.info("  Clients          : %d", args.num_clients)
+    logger.info("  Rounds           : %d", args.rounds)
+    logger.info("  Local epochs     : %d", args.local_epochs)
+    logger.info("  Client fraction  : %.2f", args.client_frac)
+    logger.info("  Dirichlet α      : %.3f", args.dirichlet_alpha)
+    logger.info("  Drift weighting  : %s", args.drift_weighting)
+    logger.info("  Batch size       : %d", args.batch_size)
+    logger.info("  LR               : %g", args.lr)
+    logger.info(sep)
 
     # ------------------------------------------------------------------ #
     #  Data — stratified train/val split, then Dirichlet partition train  #
@@ -466,8 +510,7 @@ def main() -> None:
 
     for k, part in enumerate(client_partitions):
         dist = np.bincount(train_ds.labels[part], minlength=NUM_CLASSES)
-        print(f"  Client {k}: {len(part):>5} samples  class-dist={dist.tolist()}")
-    print()
+        logger.info("  Client %d: %5d samples  class-dist=%s", k, len(part), dist.tolist())
 
     # --- Validation loader (global, used every round) ----------------- #
     pin = device.type == "cuda"
@@ -493,11 +536,11 @@ def main() -> None:
     ).to(device)
 
     param_groups = split_model_parameters(global_model)
-    print(f"  Group A (global):  {len(param_groups['group_A']):>3} params")
-    print(f"  Group B (drift):   {len(param_groups['group_B']):>3} params")
-    print(f"  Group C (local):   {len(param_groups['group_C']):>3} params")
+    logger.info("  Group A (global):  %3d param tensors", len(param_groups['group_A']))
+    logger.info("  Group B (drift):   %3d param tensors", len(param_groups['group_B']))
+    logger.info("  Group C (local):   %3d param tensors", len(param_groups['group_C']))
     total_params = sum(p.numel() for p in global_model.parameters()) / 1e6
-    print(f"  Total params:      {total_params:.1f}M\n")
+    logger.info("  Total params:      %.1fM", total_params)
 
     # --- Loss (same as centralized) ----------------------------------- #
     class_weights = compute_class_weights(str(GT_CSV)).to(device)
@@ -524,14 +567,14 @@ def main() -> None:
         client_states = ckpt["client_states"]
         start_round = ckpt["round"] + 1
         best_global_bal_acc = ckpt.get("best_global_bal_acc", 0.0)
-        print(f"  Resumed from round {start_round}, best_bal_acc={best_global_bal_acc:.4f}\n")
+        logger.info("Resumed from round %d, best_bal_acc=%.4f", start_round, best_global_bal_acc)
 
     CKPT_DIR.mkdir(parents=True, exist_ok=True)
 
     # ------------------------------------------------------------------ #
     #  Federated training loop                                            #
     # ------------------------------------------------------------------ #
-    print(f"  Starting federated training ...\n")
+    logger.info("Starting federated training — %d rounds, %d clients", args.rounds, args.num_clients)
 
     for rnd in range(start_round, args.rounds):
         t0 = time.time()
@@ -605,10 +648,12 @@ def main() -> None:
             client_states[k] = updated_sd
 
             # Log per-client training summary
-            print(
-                f"  Client {k}: train_samples={train_metrics['num_samples']} "
-                f"loss={train_metrics['train_loss']:.4f} acc={train_metrics['acc']:.4f} "
-                f"bal_acc={train_metrics['bal_acc']:.4f} f1={train_metrics['f1']:.4f} roc_auc={train_metrics['roc_auc']:.4f}"
+            logger.info(
+                "  [Train] Client %d | samples=%d loss=%.4f acc=%.4f "
+                "bal_acc=%.4f f1=%.4f roc_auc=%.4f",
+                k, train_metrics['num_samples'], train_metrics['train_loss'],
+                train_metrics['acc'], train_metrics['bal_acc'],
+                train_metrics['f1'], train_metrics['roc_auc'],
             )
 
             # Free GPU memory from this client's model
@@ -689,17 +734,17 @@ def main() -> None:
         elapsed = time.time() - t0
 
         # --- 7. Logging ----------------------------------------------- #
-        print(
-            f"Round {rnd+1:>3}/{args.rounds} | "
-            f"Global Acc {global_metrics['acc']:.4f}  BalAcc {global_metrics['bal_acc']:.4f} "
-            f"F1 {global_metrics.get('f1', 0.0):.4f}  AUC {global_metrics.get('roc_auc', float('nan')):.4f} | "
-            f"Worst-Client Acc {worst_acc:.4f}  BalAcc {worst_bal_acc:.4f} | "
-            f"Std Acc {std_acc:.4f}  BalAcc {std_bal_acc:.4f} | "
-            f"{elapsed:.0f}s"
+        logger.info(
+            "Round %3d/%d | Global Acc=%.4f BalAcc=%.4f F1=%.4f AUC=%.4f | "
+            "Worst Acc=%.4f BalAcc=%.4f | Std Acc=%.4f BalAcc=%.4f | %.0fs",
+            rnd + 1, args.rounds,
+            global_metrics['acc'], global_metrics['bal_acc'],
+            global_metrics.get('f1', 0.0), global_metrics.get('roc_auc', float('nan')),
+            worst_acc, worst_bal_acc, std_acc, std_bal_acc, elapsed,
         )
         pc = global_metrics["per_class"]
-        pc_str = " | ".join(f"{k}:{v:.2f}" for k, v in pc.items())
-        print(f"  Per-class: {pc_str}")
+        pc_str = "  ".join(f"{cls}={v:.3f}" for cls, v in pc.items())
+        logger.info("  [Per-class] %s", pc_str)
 
         # --- 8. Checkpointing ---------------------------------------- #
         is_best = global_metrics["bal_acc"] > best_global_bal_acc
@@ -725,7 +770,7 @@ def main() -> None:
 
         if is_best:
             torch.save(ckpt_state, CKPT_DIR / "best_federated.pt")
-            print(f"  ** New best global balanced accuracy: {best_global_bal_acc:.4f} **")
+            logger.info("** New best global balanced accuracy: %.4f **", best_global_bal_acc)
 
         # Save final personalized client models at last round
         if rnd == args.rounds - 1:
@@ -736,16 +781,17 @@ def main() -> None:
                     "client_state": client_states[k],
                 }
                 torch.save(client_ckpt, CKPT_DIR / f"client_{k}_final.pt")
-            print(f"\n  Saved {args.num_clients} personalized client models.")
+            logger.info("Saved %d personalized client models to %s", args.num_clients, CKPT_DIR)
 
     # ------------------------------------------------------------------ #
     #  Summary                                                            #
     # ------------------------------------------------------------------ #
-    print(f"\n{'='*66}")
-    print(f"  Federated training complete!")
-    print(f"  Best global balanced accuracy: {best_global_bal_acc:.4f}")
-    print(f"  Checkpoints: {CKPT_DIR}")
-    print(f"{'='*66}\n")
+    sep = "=" * 66
+    logger.info(sep)
+    logger.info("  Federated training complete!")
+    logger.info("  Best global balanced accuracy: %.4f", best_global_bal_acc)
+    logger.info("  Checkpoints: %s", CKPT_DIR)
+    logger.info(sep)
 
 
 if __name__ == "__main__":
