@@ -196,7 +196,6 @@ def train_client(
     warmup_steps = steps_per_epoch * min(WARMUP_EPOCHS, local_epochs)
     scheduler = get_cosine_schedule_with_warmup(optimizer, warmup_steps, total_steps)
 
-    # GradScaler is needed only for float16; bfloat16 doesn't need it
     use_scaler = device.type == "cuda" and amp_dtype == torch.float16
     scaler = torch.amp.GradScaler() if use_scaler else None
 
@@ -411,9 +410,8 @@ def main() -> None:
     else:
         device = torch.device("cpu")
 
-    # bfloat16 is preferred on all modern NVIDIA GPUs (Ampere/Ada/Hopper)
-    # — more numerically stable than float16 and natively supported on L40S.
-    amp_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+    # A40 uses float16 (Ampere supports it well; bfloat16 is for A100/H100/L40S)
+    amp_dtype = torch.float16 if device.type == "cuda" else torch.float32
 
     # ------------------------------------------------------------------ #
     #  Banner                                                             #

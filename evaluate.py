@@ -163,8 +163,8 @@ def main() -> None:
     else:
         device = torch.device("cpu")
 
-    # bfloat16 is preferred on all Ampere / Ada / Hopper GPUs (L40S, A100, H100)
-    amp_dtype = torch.bfloat16 if device.type == "cuda" else torch.float32
+    # A40 uses float16 (Ampere; GradScaler handles dynamic loss scaling)
+    amp_dtype = torch.float16 if device.type == "cuda" else torch.float32
 
     print(f"Device     : {device}")
     print(f"Checkpoint : {args.checkpoint}")
