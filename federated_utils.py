@@ -103,6 +103,27 @@ def split_model_parameters(
 #  2.  Dirichlet non-IID partition                                        #
 # ====================================================================== #
 
+def validate_partition(
+    labels: np.ndarray,
+    partitions: List[np.ndarray],
+    min_classes: int = 2,
+    min_samples: int = 100,
+) -> bool:
+    """
+    Check that every client partition has at least *min_classes* distinct
+    classes and at least *min_samples* samples.
+
+    Returns True if valid, False otherwise.
+    """
+    for part in partitions:
+        unique = np.unique(labels[part])
+        if len(unique) < min_classes:
+            return False
+        if len(part) < min_samples:
+            return False
+    return True
+
+
 def dirichlet_partition(
     labels: np.ndarray,
     num_clients: int,

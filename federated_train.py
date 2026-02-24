@@ -57,6 +57,7 @@ from federated_utils import (
     drift_aware_aggregate,
     fedavg,
     split_model_parameters,
+    validate_partition,
 )
 from model import build_isic_model
 
@@ -504,9 +505,21 @@ def main() -> None:
     )
 
     # --- Dirichlet non-IID partition of training set ------------------ #
-    client_partitions = dirichlet_partition(
-        train_ds.labels, args.num_clients, args.dirichlet_alpha, seed=SEED,
-    )
+    for attempt in range(50):
+        client_partitions = dirichlet_partition(
+            train_ds.labels, args.num_clients, args.dirichlet_alpha,
+            seed=SEED + attempt,
+        )
+        if validate_partition(train_ds.labels, client_partitions):
+            if attempt > 0:
+                logger.info("  Valid partition found on attempt %d (seed=%d)", attempt + 1, SEED + attempt)
+            break
+    else:
+        raise RuntimeError(
+            f"Failed to generate valid Dirichlet partition after 50 attempts "
+            f"(α={args.dirichlet_alpha}, clients={args.num_clients}). "
+            f"Try increasing --dirichlet_alpha or decreasing --num_clients."
+        )
 
     for k, part in enumerate(client_partitions):
         dist = np.bincount(train_ds.labels[part], minlength=NUM_CLASSES)
