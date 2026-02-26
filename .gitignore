@@ -11,3 +11,6 @@
 *.egg-info
 /dist/
 /checkpoints/
+/images/
+*.docx
+text
