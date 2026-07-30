@@ -99,6 +99,46 @@ def split_model_parameters(
     return groups
 
 
+def remap_param_groups(
+    param_groups: Dict[str, Set[str]],
+    ablation: str,
+) -> Dict[str, Set[str]]:
+    """
+    Re-partition the three parameter groups to realise an ablation arm.
+
+    The federated aggregation loop is driven entirely by these sets
+    (``group_A`` → plain FedAvg, ``group_B`` → drift-aware/FedAvg,
+    ``group_C`` → kept local/personalized), so each ablation is expressed
+    purely as a re-assignment of tensor names — no architectural change.
+
+    Arms
+    ----
+    full          : A/B/C decomposition exactly as designed (no change).
+    decomp_nodrift: identical partition; the caller additionally forces
+                    ``drift_weighting=False`` so Group B uses plain FedAvg.
+                    (Sets are unchanged here.)
+    true_fedavg   : no decomposition, no personalization — every tensor is
+                    globally averaged (all names → group_A; B, C empty).
+    merge_ab      : collapse the depth split — A ∪ B become one FedAvg
+                    group; C stays local. Isolates the A/B split.
+    global_head   : remove the personalized head — C is aggregated globally
+                    with A; A/B otherwise unchanged. Isolates Group C.
+    """
+    A = set(param_groups["group_A"])
+    B = set(param_groups["group_B"])
+    C = set(param_groups["group_C"])
+
+    if ablation in ("full", "decomp_nodrift"):
+        return {"group_A": A, "group_B": B, "group_C": C}
+    if ablation == "true_fedavg":
+        return {"group_A": A | B | C, "group_B": set(), "group_C": set()}
+    if ablation == "merge_ab":
+        return {"group_A": A | B, "group_B": set(), "group_C": C}
+    if ablation == "global_head":
+        return {"group_A": A | C, "group_B": B, "group_C": set()}
+    raise ValueError(f"Unknown ablation arm: {ablation!r}")
+
+
 # ====================================================================== #
 #  2.  Dirichlet non-IID partition                                        #
 # ====================================================================== #

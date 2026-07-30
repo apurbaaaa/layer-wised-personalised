@@ -56,6 +56,7 @@ from federated_utils import (
     dirichlet_partition,
     drift_aware_aggregate,
     fedavg,
+    remap_param_groups,
     split_model_parameters,
     validate_partition,
 )
@@ -423,6 +424,37 @@ def main() -> None:
     parser.add_argument("--drift_weighting", type=lambda x: x.lower() in ("true", "1", "yes"),
                         default=True,
                         help="Use drift-aware aggregation for Group B (default: True)")
+    parser.add_argument("--seed", type=int, default=SEED,
+                        help="Random seed controlling init and Dirichlet partition "
+                             "(vary across runs to obtain confidence intervals)")
+    parser.add_argument("--ablation", type=str, default="full",
+                        choices=["full", "decomp_nodrift", "true_fedavg",
+                                 "merge_ab", "global_head"],
+                        help="Ablation arm. full: A/B/C decomposition (+drift if enabled). "
+                             "decomp_nodrift: A/B/C decomposition, Group B plain FedAvg. "
+                             "true_fedavg: no decomposition, every tensor globally averaged, "
+                             "no personalized head. merge_ab: collapse A and B into one "
+                             "FedAvg group (isolates the depth split), C stays local. "
+                             "global_head: A/B as usual but Group C aggregated globally "
+                             "(isolates the local head).")
+    parser.add_argument("--min_classes", type=int, default=2,
+                        help="Min distinct classes required per client for a valid partition. "
+                             "Set to 1 for severe non-IID (e.g. α=0.1) where clients "
+                             "legitimately miss whole classes.")
+    parser.add_argument("--min_samples", type=int, default=100,
+                        help="Min samples required per client for a valid partition. "
+                             "Lower (e.g. 10) for severe non-IID regimes.")
+    parser.add_argument("--partition_attempts", type=int, default=50,
+                        help="Max reseeding attempts to find a valid partition.")
+    parser.add_argument("--keep_round_ckpts", action="store_true", default=False,
+                        help="Save a full checkpoint every round (~2.1 GB each, "
+                             "~52 GB per 25-round run). Off by default; "
+                             "last_federated.pt/best_federated.pt are always kept, "
+                             "so --resume still works.")
+    parser.add_argument("--run_name", type=str, default=None,
+                        help="Sub-directory name for checkpoints/logs of this run. "
+                             "Defaults to an auto tag built from ablation/alpha/K/seed. "
+                             "Set explicitly to keep matrix runs from overwriting each other.")
     parser.add_argument("--batch_size", type=int, default=BATCH_SIZE)
     parser.add_argument("--lr", type=float, default=LR)
     parser.add_argument("--workers", type=int, default=NUM_WORKERS)
@@ -431,8 +463,16 @@ def main() -> None:
     parser.add_argument("--pretrained", action="store_true", default=True)
     args = parser.parse_args()
 
-    seed_everything(SEED)
-    setup_logging("federated")
+    # Per-run identity so a sweep of runs never clobbers a sibling's outputs.
+    if args.run_name is None:
+        args.run_name = (f"{args.ablation}_a{args.dirichlet_alpha}"
+                         f"_K{args.num_clients}_s{args.seed}"
+                         f"_drift{int(bool(args.drift_weighting))}")
+    global CKPT_DIR
+    CKPT_DIR = CKPT_DIR / args.run_name
+
+    seed_everything(args.seed)
+    setup_logging(f"federated_{args.run_name}")
     logger.info("Args: %s", json.dumps(vars(args), indent=2))
 
     # ------------------------------------------------------------------ #
@@ -505,20 +545,26 @@ def main() -> None:
     )
 
     # --- Dirichlet non-IID partition of training set ------------------ #
-    for attempt in range(50):
+    for attempt in range(args.partition_attempts):
         client_partitions = dirichlet_partition(
             train_ds.labels, args.num_clients, args.dirichlet_alpha,
-            seed=SEED + attempt,
+            seed=args.seed + attempt,
         )
-        if validate_partition(train_ds.labels, client_partitions):
+        if validate_partition(train_ds.labels, client_partitions,
+                              min_classes=args.min_classes,
+                              min_samples=args.min_samples):
             if attempt > 0:
-                logger.info("  Valid partition found on attempt %d (seed=%d)", attempt + 1, SEED + attempt)
+                logger.info("  Valid partition found on attempt %d (seed=%d)",
+                            attempt + 1, args.seed + attempt)
             break
     else:
         raise RuntimeError(
-            f"Failed to generate valid Dirichlet partition after 50 attempts "
-            f"(α={args.dirichlet_alpha}, clients={args.num_clients}). "
-            f"Try increasing --dirichlet_alpha or decreasing --num_clients."
+            f"Failed to generate valid Dirichlet partition after "
+            f"{args.partition_attempts} attempts "
+            f"(α={args.dirichlet_alpha}, clients={args.num_clients}, "
+            f"min_classes={args.min_classes}, min_samples={args.min_samples}). "
+            f"For severe non-IID (α≤0.1) lower --min_classes/--min_samples, "
+            f"or increase --dirichlet_alpha / decrease --num_clients."
         )
 
     for k, part in enumerate(client_partitions):
@@ -549,6 +595,15 @@ def main() -> None:
     ).to(device)
 
     param_groups = split_model_parameters(global_model)
+
+    # --- Ablation remapping ------------------------------------------- #
+    # An ablation arm is expressed purely as a re-partition of the tensors
+    # (see remap_param_groups). decomp_nodrift additionally disables drift.
+    if args.ablation == "decomp_nodrift":
+        args.drift_weighting = False
+    param_groups = remap_param_groups(param_groups, args.ablation)
+    logger.info("  Ablation arm     : %s (drift_weighting=%s)",
+                args.ablation, args.drift_weighting)
     logger.info("  Group A (global):  %3d param tensors", len(param_groups['group_A']))
     logger.info("  Group B (drift):   %3d param tensors", len(param_groups['group_B']))
     logger.info("  Group C (local):   %3d param tensors", len(param_groups['group_C']))
@@ -778,7 +833,13 @@ def main() -> None:
             "client_bal_accs": client_bal_accs,
         }
 
-        torch.save(ckpt_state, CKPT_DIR / f"global_round_{rnd+1}.pt")
+        # Each ckpt holds the global model + every client's full state
+        # (~2.1 GB at 87.5M params, K=5). Keeping one per round costs ~52 GB
+        # per 25-round run, which fills the disk when several runs share a
+        # pod. Default: keep only last/best; --keep_round_ckpts restores the
+        # old per-round snapshots.
+        if args.keep_round_ckpts:
+            torch.save(ckpt_state, CKPT_DIR / f"global_round_{rnd+1}.pt")
         torch.save(ckpt_state, CKPT_DIR / "last_federated.pt")
 
         if is_best:
