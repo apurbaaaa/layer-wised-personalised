@@ -64,7 +64,21 @@ def build_loader(split: str, batch_size: int, workers: int,
         image_dir = str(DATA_DIR / "ISIC_2019_Test_Input")
         gt_csv = str(DATA_DIR / "ISIC_2019_Test_GroundTruth.csv")
         meta_csv = str(DATA_DIR / "ISIC_2019_Test_Metadata.csv")
-        indices = None
+        # The ISIC 2019 test ground truth carries a 9th "UNK" class. Those rows
+        # are all-zero across the 8 trained classes, and dataset.py derives
+        # labels via argmax (dataset.py:114), which would silently assign every
+        # UNK image to class 0 (MEL) — ~25 % of the test set. The model has no
+        # UNK output, so these samples are excluded and the exclusion reported.
+        gt = pd.read_csv(gt_csv)
+        onehot_sum = gt[CLASSES].sum(axis=1).values
+        keep = np.flatnonzero(onehot_sum == 1)
+        n_unk = int((onehot_sum == 0).sum())
+        if n_unk:
+            logger.warning(
+                "test split: excluding %d/%d rows with no label among the 8 "
+                "trained classes (ISIC 2019 'UNK'); evaluating on %d images",
+                n_unk, len(gt), len(keep))
+        indices = keep
     else:
         image_dir = str(DATA_DIR / "ISIC_2019_Training_Input")
         gt_csv = str(DATA_DIR / "ISIC_2019_Training_GroundTruth.csv")
