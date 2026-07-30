@@ -24,9 +24,24 @@ Notes
 * CIs use the Student-t interval; with n=1 the point estimate is reported and
   flagged as single-seed (no CI) — this is expected for the $10 matrix.
 * true_fedavg has no personalized head, so its per-client "worst/std" on the
-  shared global val set is degenerate (std≈0). Those columns are therefore
-  reported for true_fedavg but should be read ONLY as a global-accuracy
-  baseline, not as a fairness comparison (see reviewer response, Comment 3).
+  shared global val set is degenerate (std≈0, worst == global). Those columns
+  are therefore reported for true_fedavg but must NOT be read as a fairness
+  comparison (see reviewer response, Comment 3).
+
+* IMPORTANT — the "global_balacc" column is NOT comparable across arms.
+  Group C (metadata_mlp + fusion_head) is the entire classifier and is never
+  aggregated, so for the decomposed arms (full, decomp_nodrift) the global
+  model keeps its RANDOM initial classifier for the whole run — verified
+  empirically with diag_groupc.py (8/8 Group C tensors identical to init,
+  while Group A had changed). true_fedavg has an empty Group C, so its
+  classifier IS aggregated and trained. Comparing global accuracy between
+  those two families conflates "decomposition removed" with "classifier
+  trained vs untrained".
+
+  Use MEAN PER-CLIENT accuracy for cross-arm comparison: every arm is then
+  evaluated with a trained classifier (its own personalized head, or the
+  single shared head for true_fedavg). That is the `mean_client_acc` column
+  and the "comparable ladder" section below.
 """
 from __future__ import annotations
 
@@ -77,6 +92,34 @@ class Run:
     @property
     def seed(self) -> int:
         return int(self.args.get("seed", 42))
+
+    @property
+    def run_name(self) -> Optional[str]:
+        return self.args.get("run_name")
+
+
+def load_client_accs(run: Run, ckpt_root: Path) -> Optional[List[float]]:
+    """
+    Pull the final-round per-client accuracies from a run's checkpoint.
+
+    Needed because the log line reports only worst/std, not the mean, and mean
+    per-client accuracy is the only accuracy metric comparable ACROSS ablation
+    arms (see the module docstring note on the frozen global classifier).
+    """
+    if not run.run_name:
+        return None
+    ck = ckpt_root / run.run_name / "last_federated.pt"
+    if not ck.is_file():
+        return None
+    try:
+        import torch
+        blob = torch.load(ck, map_location="cpu", weights_only=False)
+    except Exception:
+        return None
+    accs = blob.get("client_accs")
+    if isinstance(accs, list) and accs:
+        return [float(a) for a in accs]
+    return None
 
 
 def parse_log(path: Path) -> Optional[Run]:
@@ -130,10 +173,13 @@ def fmt(mean: float, hw: Optional[float]) -> str:
 
 def main(argv: List[str]) -> None:
     paths: List[Path] = []
+    ckpt_root = Path("checkpoints/federated")
     for a in argv:
         p = Path(a)
-        if p.is_dir():
+        if p.is_dir() and p.name != "federated":
             paths.extend(sorted(p.glob("federated_*.log")))
+        elif p.is_dir():
+            ckpt_root = p
         else:
             paths.append(p)
     if not paths:
@@ -153,23 +199,60 @@ def main(argv: List[str]) -> None:
     for r in runs:
         by_key[r.key].append(r)
 
+    # Per-client accuracies from checkpoints (for the comparable ladder).
+    client_accs: Dict[Tuple, List[float]] = {}
+    for key, rs in by_key.items():
+        vals: List[float] = []
+        for r in rs:
+            ca = load_client_accs(r, ckpt_root)
+            if ca:
+                vals.append(sum(ca) / len(ca))
+        if vals:
+            client_accs[key] = vals
+
     print("\n=== Per-configuration summary (final round) ===")
+    print("NOTE: global_balacc is NOT comparable across arms — see header.")
     print(f"{'ablation':<16}{'alpha':>6}{'K':>4}{'seeds':>7}   "
-          f"{'global_balacc':<24}{'worst_acc':<24}{'std_acc':<20}")
+          f"{'global_balacc':<22}{'mean_client_acc':<22}"
+          f"{'worst_acc':<22}{'std_acc':<20}")
     for key in sorted(by_key):
         rs = by_key[key]
         seeds = sorted(r.seed for r in rs)
         gb = mean_ci([r.metrics["global_bal_acc"] for r in rs])
         wa = mean_ci([r.metrics["worst_acc"] for r in rs])
         sa = mean_ci([r.metrics["std_acc"] for r in rs])
+        mc = mean_ci(client_accs[key]) if key in client_accs else None
         abl, alpha, K = key
+        mc_str = fmt(*mc) if mc else "n/a (no ckpt)"
         print(f"{abl:<16}{alpha:>6}{K:>4}{str(seeds):>7}   "
-              f"{fmt(*gb):<24}{fmt(*wa):<24}{fmt(*sa):<20}")
+              f"{fmt(*gb):<22}{mc_str:<22}"
+              f"{fmt(*wa):<22}{fmt(*sa):<20}")
+
+    # --- COMPARABLE ladder: mean per-client accuracy ------------------- #
+    print("\n=== Component ladder: MEAN PER-CLIENT accuracy (comparable) ===")
+    print("(every arm evaluated with a trained classifier — use this for "
+          "the decomposition ablation)")
+    lad2: Dict[Tuple[float, int], Dict[str, float]] = defaultdict(dict)
+    for key, vals in client_accs.items():
+        abl, alpha, K = key
+        lad2[(alpha, K)][abl] = sum(vals) / len(vals)
+    for (alpha, K), d in sorted(lad2.items()):
+        tf, dn, fu = d.get("true_fedavg"), d.get("decomp_nodrift"), d.get("full")
+        parts = [f"{n}={v:.4f}" for n, v in
+                 (("true_fedavg", tf), ("decomp_nodrift", dn), ("full", fu))
+                 if v is not None]
+        line = f"  alpha={alpha}, K={K}: " + "  ".join(parts)
+        if tf is not None and dn is not None:
+            line += f"  | Δdecomp={dn - tf:+.4f}"
+        if dn is not None and fu is not None:
+            line += f"  | Δdrift={fu - dn:+.4f}"
+        print(line)
 
     # --- component ladder on global bal-acc --------------------------- #
-    print("\n=== Component ladder: global balanced accuracy ===")
-    print("(true_fedavg → decomp_nodrift → full at each alpha,K; "
-          "step 1 = decomposition, step 2 = drift)")
+    print("\n=== Component ladder: global balanced accuracy (NOT comparable "
+          "across arm families) ===")
+    print("(valid only WITHIN the decomposed family: decomp_nodrift vs full. "
+          "true_fedavg's classifier is trained; theirs is frozen at init.)")
     ladders: Dict[Tuple[float, int], Dict[str, float]] = defaultdict(dict)
     for key, rs in by_key.items():
         abl, alpha, K = key
