@@ -110,11 +110,18 @@ def metrics_from(preds: np.ndarray, labels: np.ndarray,
         auc = float(roc_auc_score(y_oh, probs, average="macro", multi_class="ovr"))
     except Exception:
         auc = float("nan")
+    # Per-class recall, keyed by class name. Needed to show whether a method
+    # abandons clinically critical minority classes (e.g. MEL) under severe
+    # non-IID — a failure invisible in overall accuracy.
+    _, rec, _, sup = precision_recall_fscore_support(
+        labels, preds, labels=list(range(NUM_CLASSES)), zero_division=0)
     return {
         "acc": float((preds == labels).mean()),
         "bal_acc": float(balanced_accuracy_score(labels, preds)),
         "macro_f1": float(f1),
         "macro_auc": auc,
+        "per_class_recall": {c: float(r) for c, r in zip(CLASSES, rec)},
+        "support": {c: int(s) for c, s in zip(CLASSES, sup)},
     }
 
 
@@ -205,6 +212,12 @@ def main() -> None:
 
             accs = [m["acc"] for m in per_client]
             bals = [m["bal_acc"] for m in per_client]
+            mean_recall = {
+                c: float(np.mean([m["per_class_recall"][c] for m in per_client]))
+                for c in CLASSES
+            }
+            logger.info("mean per-class recall: %s",
+                        "  ".join(f"{c}={v:.3f}" for c, v in mean_recall.items()))
             out["splits"][split] = {
                 "mode": "personalized",
                 "per_client": per_client,
@@ -214,6 +227,7 @@ def main() -> None:
                 "worst_bal_acc": float(np.min(bals)),
                 "std_acc": float(np.std(accs)),
                 "std_bal_acc": float(np.std(bals)),
+                "mean_per_class_recall": mean_recall,
                 "confusion": last_cm.tolist() if last_cm is not None else None,
             }
             s = out["splits"][split]
