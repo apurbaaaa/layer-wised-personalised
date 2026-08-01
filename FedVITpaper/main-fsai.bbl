@@ -1,0 +1,263 @@
+\begin{thebibliography}{35}
+\providecommand{\natexlab}[1]{#1}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi:\discretionary{}{}{}#1}\else
+  \providecommand{\doi}{doi:\discretionary{}{}{}\begingroup
+  \urlstyle{rm}\Url}\fi
+\providecommand{\selectlanguage}[1]{\relax}
+\providecommand{\bibAnnoteFile}[1]{%
+  \IfFileExists{#1}{\begin{quotation}\noindent\textsc{Key:} #1\\
+  \textsc{Annotation:}\ \input{#1}\end{quotation}}{}}
+\providecommand{\bibAnnote}[2]{%
+  \begin{quotation}\noindent\textsc{Key:} #1\\
+  \textsc{Annotation:}\ #2\end{quotation}}
+
+\bibitem[{Aguirre et~al.(2024)}]{Aguirre2024}
+Aguirre, J. et~al. (2024).
+\newblock A comparative analysis of cnn models and vision transformers for skin
+  lesion classification.
+\newblock \emph{SOL-SBC (Sociedade Brasileira de Computa\c{c}\~{a}o)}
+\bibAnnoteFile{Aguirre2024}
+
+\bibitem[{Alipour et~al.(2024)}]{SkinDiversity2024}
+Alipour, M. et~al. (2024).
+\newblock Skin type diversity in skin lesion datasets: A review.
+\newblock \emph{Current Dermatology Reports}
+\bibAnnoteFile{SkinDiversity2024}
+
+\bibitem[{Almalik et~al.(2022)}]{Almalik2022}
+Almalik, H. et~al. (2022).
+\newblock Self-ensembling vision transformer (sevit) for robust medical image
+  classification.
+\newblock In \emph{Proceedings of the Medical Image Computing and Computer
+  Assisted Intervention (MICCAI)}
+\bibAnnoteFile{Almalik2022}
+
+\bibitem[{Alshdaifat et~al.(2025)}]{Alshdaifat2025}
+Alshdaifat, E. et~al. (2025).
+\newblock Triple-stream transformer architecture for multi-class skin cancer
+  classification in dermoscopic images.
+\newblock \emph{Journal of Posthumanism}
+\bibAnnoteFile{Alshdaifat2025}
+
+\bibitem[{Arnold et~al.(2022)Arnold, Singh, Laversanne, Vignat, Ferlay, and
+  Soerjomataram}]{Arnold2022}
+Arnold, M., Singh, M., Laversanne, S., Vignat, D., Ferlay, J., and
+  Soerjomataram, I. (2022).
+\newblock Global burden of cutaneous melanoma in 2020 and projections to 2040.
+\newblock \emph{JAMA Dermatology} 158, 495--503
+\bibAnnoteFile{Arnold2022}
+
+\bibitem[{Collins et~al.(2021)Collins, Hassani, Mokhtari, and
+  Shakkottai}]{Collins2021}
+Collins, L., Hassani, H., Mokhtari, A., and Shakkottai, S. (2021).
+\newblock Exploiting shared representations for personalized federated
+  learning.
+\newblock In \emph{Proceedings of the International Conference on Machine
+  Learning (ICML)}
+\bibAnnoteFile{Collins2021}
+
+\bibitem[{Darzi et~al.(2024)}]{Darzi2024}
+Darzi, A. et~al. (2024).
+\newblock Tackling heterogeneity in medical federated learning via aligning
+  vision transformers.
+\newblock \emph{arXiv preprint}
+\bibAnnoteFile{Darzi2024}
+
+\bibitem[{Gessert et~al.(2020)Gessert, Nielsen, Shaikh, Werner, and
+  Schlaefer}]{Gessert2020}
+Gessert, N., Nielsen, M., Shaikh, M., Werner, R., and Schlaefer, A. (2020).
+\newblock Skin lesion classification using ensembles of multi-resolution
+  efficientnets with meta data.
+\newblock In \emph{ISIC 2019 Challenge Proceedings}
+\bibAnnoteFile{Gessert2020}
+
+\bibitem[{Guan et~al.(2024)}]{Guan2024}
+Guan, Q. et~al. (2024).
+\newblock Federated learning for medical image analysis: A survey.
+\newblock \emph{Pattern Recognition}
+\bibAnnoteFile{Guan2024}
+
+\bibitem[{Hasan and Rifat(2024)}]{HasanRifat2024}
+Hasan, M. and Rifat, S. (2024).
+\newblock Hybrid ensemble of segmentation-assisted classification and
+  gradient-boosted decision trees for skin cancer detection.
+\newblock \emph{arXiv preprint}
+\bibAnnoteFile{HasanRifat2024}
+
+\bibitem[{Hay et~al.(2014)Hay, Johns, Williams et~al.}]{Hay2014}
+Hay, R.~J., Johns, N.~E., Williams, H.~C., et~al. (2014).
+\newblock The global burden of skin disease in 2010: An analysis of the
+  prevalence and impact of skin conditions.
+\newblock \emph{Journal of Investigative Dermatology} 134, 1527--1534
+\bibAnnoteFile{Hay2014}
+
+\bibitem[{Imam et~al.(2023)}]{Imam2023}
+Imam, M. et~al. (2023).
+\newblock On enhancing the robustness of vision transformers: Defensive
+  diffusion.
+\newblock \emph{arXiv preprint}
+\bibAnnoteFile{Imam2023}
+
+\bibitem[{Karimireddy et~al.(2020)Karimireddy, Kale, Mohri, Reddi, Stich, and
+  Suresh}]{Karimireddy2020}
+Karimireddy, S.~P., Kale, S., Mohri, M., Reddi, S., Stich, S., and Suresh,
+  A.~T. (2020).
+\newblock Scaffold: Stochastic controlled averaging for federated learning.
+\newblock In \emph{Proceedings of the International Conference on Machine
+  Learning (ICML)}
+\bibAnnoteFile{Karimireddy2020}
+
+\bibitem[{Law(2023)}]{Law2023}
+Law, S. (2023).
+\newblock Consumer data privacy: Eu's gdpr vs. china's pipl.
+\newblock \emph{Bloomberg Law}
+\bibAnnoteFile{Law2023}
+
+\bibitem[{Li et~al.(2021)Li, Hu, Beirami, and Smith}]{Li2021}
+Li, T., Hu, S., Beirami, A., and Smith, V. (2021).
+\newblock Ditto: Fair and robust federated learning through personalization.
+\newblock In \emph{Proceedings of the International Conference on Machine
+  Learning (ICML)}
+\bibAnnoteFile{Li2021}
+
+\bibitem[{Li et~al.(2020)Li, Sahu, Zaheer, Sanjabi, Talwalkar, and
+  Smith}]{Li2020}
+Li, T., Sahu, A.~K., Zaheer, M., Sanjabi, M., Talwalkar, A., and Smith, V.
+  (2020).
+\newblock Federated optimization in heterogeneous networks.
+\newblock In \emph{Proceedings of Machine Learning and Systems (MLSys)}
+\bibAnnoteFile{Li2020}
+
+\bibitem[{Li et~al.(2025)}]{HyperFusionNet2025}
+Li, Y. et~al. (2025).
+\newblock Hyperfusionnet: Vision transformer-based early melanoma detection
+  with precise lesion segmentation.
+\newblock \emph{Scientific Reports}
+\bibAnnoteFile{HyperFusionNet2025}
+
+\bibitem[{McMahan et~al.(2017)McMahan, Moore, Ramage, Hampson, and
+  y~Arcas}]{McMahan2017}
+McMahan, B., Moore, E., Ramage, D., Hampson, S., and y~Arcas, B.~A. (2017).
+\newblock Communication-efficient learning of deep networks from decentralized
+  data.
+\newblock In \emph{Proceedings of the 20th International Conference on
+  Artificial Intelligence and Statistics (AISTATS)}. 1273--1282
+\bibAnnoteFile{McMahan2017}
+
+\bibitem[{Mohri et~al.(2019)Mohri, Sivek, and Suresh}]{Mohri2019}
+Mohri, M., Sivek, G., and Suresh, A.~T. (2019).
+\newblock Agnostic federated learning.
+\newblock In \emph{Proceedings of the 36th International Conference on Machine
+  Learning (ICML)}. 4615--4625
+\bibAnnoteFile{Mohri2019}
+
+\bibitem[{Naeem et~al.(2025)}]{Naeem2025}
+Naeem, M. et~al. (2025).
+\newblock Automated skin cancer detection using medfusionnet with
+  attention-based fusion of convnext and vision transformer.
+\newblock \emph{Scientific Reports}
+\bibAnnoteFile{Naeem2025}
+
+\bibitem[{Narimani et~al.(2024)}]{Narimani2024}
+Narimani, M. et~al. (2024).
+\newblock Fedrp: A communication-efficient approach for differentially private
+  federated learning using random projection.
+\newblock \emph{arXiv preprint}
+\bibAnnoteFile{Narimani2024}
+
+\bibitem[{Nunnari et~al.(2020)Nunnari, Pappalardo, and Lombardo}]{Nunnari2020}
+Nunnari, F., Pappalardo, G., and Lombardo, C. (2020).
+\newblock A study on the fusion of pixels and patient metadata in cnn-based
+  classification of skin lesion images.
+\newblock In \emph{Proceedings of the International Joint Conference on Neural
+  Networks (IJCNN)}
+\bibAnnoteFile{Nunnari2020}
+
+\bibitem[{Paxton et~al.(2024)}]{Paxton2024}
+Paxton, R. et~al. (2024).
+\newblock Skewness-guided pruning of multimodal swin transformers for federated
+  skin lesion classification on edge devices.
+\newblock \emph{arXiv preprint}
+\bibAnnoteFile{Paxton2024}
+
+\bibitem[{Rieke et~al.(2020)Rieke, Hancox, Li et~al.}]{Rieke2020}
+Rieke, N., Hancox, J., Li, W., et~al. (2020).
+\newblock The future of digital health with federated learning.
+\newblock \emph{NPJ Digital Medicine} 3
+\bibAnnoteFile{Rieke2020}
+
+\bibitem[{Subramanian et~al.(2025)}]{Subramanian2025}
+Subramanian, S. et~al. (2025).
+\newblock Skin cancer classification and detection using federated learning.
+\newblock In \emph{Proceedings of the 3rd International Conference on
+  Futuristic Technology (INCOFT)}
+\bibAnnoteFile{Subramanian2025}
+
+\bibitem[{Voigt and Von~dem Bussche(2017)}]{Voigt2017}
+Voigt, P. and Von~dem Bussche, A. (2017).
+\newblock \emph{The EU General Data Protection Regulation (GDPR): A Practical
+  Guide} (Cham, Switzerland: Springer)
+\bibAnnoteFile{Voigt2017}
+
+\bibitem[{Wegley et~al.(2026)}]{Wegley2026}
+Wegley, A. et~al. (2026).
+\newblock Dermatology skin lesion image analysis.
+\newblock \emph{Scholars' Mine Research Repository}
+\bibAnnoteFile{Wegley2026}
+
+\bibitem[{Wu et~al.(2024)Wu, Li, Zhang, and Huang}]{Wu2024}
+Wu, J., Li, X., Zhang, Y., and Huang, K. (2024).
+\newblock Eftvit: Efficient federated training of vision transformers with
+  masked images on resource-constrained clients.
+\newblock \emph{arXiv preprint}
+\bibAnnoteFile{Wu2024}
+
+\bibitem[{Yao et~al.(2024)}]{Yao2024}
+Yao, L. et~al. (2024).
+\newblock Task-agnostic federated learning with imbalanced data.
+\newblock \emph{arXiv preprint}
+\bibAnnoteFile{Yao2024}
+
+\bibitem[{Yaqoob et~al.(2023)}]{Yaqoob2023}
+Yaqoob, T. et~al. (2023).
+\newblock Federated machine learning for skin lesion diagnosis: An asynchronous
+  and weighted approach.
+\newblock \emph{Diagnostics}
+\bibAnnoteFile{Yaqoob2023}
+
+\bibitem[{Zhao et~al.(2025)Zhao, Chen, Wang, and Liu}]{Zhao2025}
+Zhao, Y., Chen, H., Wang, L., and Liu, J. (2025).
+\newblock Federated vision transformer with adaptive focal loss for medical
+  image classification.
+\newblock \emph{arXiv preprint}
+\bibAnnoteFile{Zhao2025}
+
+\bibitem[{Zhao et~al.(2018)Zhao, Li, Lai, Suda, Civin, and Chandra}]{Zhao2018}
+Zhao, Y., Li, M., Lai, L., Suda, N., Civin, D., and Chandra, V. (2018).
+\newblock Federated learning with non-iid data.
+\newblock \emph{arXiv preprint arXiv:1806.00582}
+\bibAnnoteFile{Zhao2018}
+
+\bibitem[{Zhu et~al.(2025)}]{Zhu2025}
+Zhu, X. et~al. (2025).
+\newblock Fedapm: Federated learning via admm with partial model
+  personalization.
+\newblock In \emph{Proceedings of the 31st ACM SIGKDD Conference on Knowledge
+  Discovery and Data Mining (KDD '25)}
+\bibAnnoteFile{Zhu2025}
+
+\bibitem[{Zoravar et~al.(2024)}]{Zoravar2024}
+Zoravar, S. et~al. (2024).
+\newblock Domain adaptive skin lesion classification via conformal ensemble of
+  vision transformers.
+\newblock \emph{arXiv preprint}
+\bibAnnoteFile{Zoravar2024}
+
+\bibitem[{Zuo et~al.(2024)}]{Zuo2024}
+Zuo, Q. et~al. (2024).
+\newblock Fedvit: Federated continual learning of vision transformer at edge.
+\newblock \emph{Future Generation Computer Systems}
+\bibAnnoteFile{Zuo2024}
+
+\end{thebibliography}

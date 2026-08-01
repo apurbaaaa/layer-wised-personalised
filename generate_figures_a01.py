@@ -292,12 +292,20 @@ def plot_arm_curves(data, suptitle, out_path):
 
 
 def full_lines(path):
-    """Every line the alpha=0.5/1.0 terminal panels show."""
+    """Every line the alpha=0.5/1.0 terminal panels show.
+
+    The raw ``Drift weighting`` header line is dropped. It is printed from the
+    parsed arguments BEFORE the ablation arm is applied, so for the
+    decomp_nodrift and true_fedavg arms it reads True while the effective
+    setting is False. The authoritative value is on the ``Ablation arm`` line,
+    which is printed after the remap and is retained.
+    """
     pat = re.compile(r"(Client \d+:|Group [ABC] |Total params|Starting federated|"
                      r"Round\s+\d+/|\[Per-class\]|New best|"
                      r"Federated training complete|Best global balanced|"
-                     r"Dirichlet|Drift weighting|Ablation arm|Rounds\s+:)")
-    return [l.rstrip("\n") for l in open(path, errors="ignore") if pat.search(l)]
+                     r"Dirichlet|Ablation arm|Rounds\s+:)")
+    return [l.rstrip("\n") for l in open(path, errors="ignore")
+            if pat.search(l) and "Drift weighting" not in l]
 
 
 STEMS = {"full_a0.1": "sa_drift_severe",
