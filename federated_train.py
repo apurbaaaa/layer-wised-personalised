@@ -424,17 +424,6 @@ def main() -> None:
     parser.add_argument("--drift_weighting", type=lambda x: x.lower() in ("true", "1", "yes"),
                         default=True,
                         help="Use drift-aware aggregation for Group B (default: True)")
-    parser.add_argument("--drift_metric", type=str, default="euclidean",
-                        choices=["euclidean", "cosine"],
-                        help="Divergence measure for Group B. euclidean: ||w_k - wbar||, "
-                             "which equals ||delta_k - deltabar|| since the broadcast point "
-                             "cancels. cosine: angular disagreement of the CENTRED updates "
-                             "(cosine on raw parameters is degenerate, see paper).")
-    parser.add_argument("--drift_weighting_fn", type=str, default="inverse",
-                        choices=["inverse", "inverse_square", "softmax", "exponential"],
-                        help="Map from divergence to weight.")
-    parser.add_argument("--drift_temperature", type=float, default=1.0,
-                        help="Temperature for softmax/exponential weighting.")
     parser.add_argument("--seed", type=int, default=SEED,
                         help="Random seed controlling init and Dirichlet partition "
                              "(vary across runs to obtain confidence intervals)")
@@ -479,8 +468,6 @@ def main() -> None:
         args.run_name = (f"{args.ablation}_a{args.dirichlet_alpha}"
                          f"_K{args.num_clients}_s{args.seed}"
                          f"_drift{int(bool(args.drift_weighting))}")
-        if args.drift_metric != "euclidean" or args.drift_weighting_fn != "inverse":
-            args.run_name += f"_{args.drift_metric}-{args.drift_weighting_fn}"
     global CKPT_DIR
     CKPT_DIR = CKPT_DIR / args.run_name
 
@@ -756,9 +743,6 @@ def main() -> None:
                 updated_client_sds,
                 param_groups["group_B"],
                 epsilon=EPSILON,
-                metric=args.drift_metric,
-                weighting=args.drift_weighting_fn,
-                temperature=args.drift_temperature,
             )
         else:
             agg_B = fedavg(

@@ -16,7 +16,6 @@ from collections import OrderedDict
 from typing import Dict, List, Optional, Sequence, Set
 
 import numpy as np
-import math
 import torch
 import torch.nn as nn
 
@@ -272,9 +271,6 @@ def drift_aware_aggregate(
     client_state_dicts: Sequence[OrderedDict],
     param_names: Set[str],
     epsilon: float = 1e-6,
-    metric: str = "euclidean",
-    weighting: str = "inverse",
-    temperature: float = 1.0,
 ) -> OrderedDict:
     """
     Drift-aware weighted aggregation for Group B parameters.
@@ -313,43 +309,11 @@ def drift_aware_aggregate(
         # Step 1: unweighted mean
         mean_t = sum(tensors) / num_clients                   # type: ignore[assignment]
 
-        # Step 2: divergence of each client from the consensus.
-        #
-        # Because every client starts the round from the same broadcast point,
-        # w_{k,l} = w_l + delta_{k,l}, the shared component cancels in the
-        # difference: ||w_{k,l} - wbar_l|| == ||delta_{k,l} - deltabar_l||.
-        # The Euclidean rule therefore already measures deviation of the
-        # *update* from the mean update.
-        #
-        # Cosine on parameters is NOT a valid substitution: with
-        # ||delta|| << ||w||, cos(w_k, wbar) -> 1 for every client and the
-        # weights become uniform. The meaningful cosine variant operates on
-        # the centred updates, which is what "cosine" selects here.
-        if metric == "euclidean":
-            drifts = [torch.norm(t - mean_t, p=2).item() for t in tensors]
-        elif metric == "cosine":
-            centred = [t - mean_t for t in tensors]
-            ref = sum(centred) / num_clients
-            drifts = [
-                1.0 - torch.nn.functional.cosine_similarity(
-                    c.flatten(), ref.flatten(), dim=0).item()
-                for c in centred
-            ]
-        else:
-            raise ValueError(f"unknown drift metric: {metric!r}")
+        # Step 2: drift magnitudes  D_{k,l} = ‖w_{k,l} − w̄_l‖_2
+        drifts = [torch.norm(t - mean_t, p=2).item() for t in tensors]
 
-        # Step 3: convert divergence to weight
-        if weighting == "inverse":
-            alphas = [1.0 / (d + epsilon) for d in drifts]
-        elif weighting == "inverse_square":
-            alphas = [1.0 / (d * d + epsilon) for d in drifts]
-        elif weighting == "softmax":
-            mx = max(-d / max(temperature, 1e-12) for d in drifts)
-            alphas = [math.exp(-d / max(temperature, 1e-12) - mx) for d in drifts]
-        elif weighting == "exponential":
-            alphas = [math.exp(-d / max(temperature, 1e-12)) for d in drifts]
-        else:
-            raise ValueError(f"unknown weighting: {weighting!r}")
+        # Step 3: inverse-drift weights  α_{k,l} = 1 / (D_{k,l} + ε)
+        alphas = [1.0 / (d + epsilon) for d in drifts]
 
         # Step 4: normalise across clients
         alpha_sum = sum(alphas)
