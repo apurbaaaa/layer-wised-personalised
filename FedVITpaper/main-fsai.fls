@@ -243,7 +243,6 @@ INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm1
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvro7t.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvb7t.tfm
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvb7t.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvr7t.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvr7t.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvb7t.tfm
@@ -261,12 +260,13 @@ INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/helvetic/phvr7t.vf
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvr8r.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/helvetic/phvb7t.vf
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvb8r.tfm
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/helvetic/phvb7t.vf
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvb8r.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvb7t.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr7t.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvbo7t.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/helvetic/phvbo7t.vf
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvbo8r.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/helvetic/phvb7t.vf
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvb8r.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/helvetic/phvb7t.vf
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/helvetic/phvb8r.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmr7t.vf
@@ -295,18 +295,21 @@ INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam5
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmri7t.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmri7t.vf
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmri8r.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmb7t.tfm
-INPUT ./images/federated learning.jpg
-INPUT ./images/federated learning.jpg
-INPUT ./images/federated learning.jpg
-INPUT ./images/federated learning.jpg
-INPUT ./images/federated learning.jpg
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr7t.tfm
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr7t.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmb7t.vf
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmb8r.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmr7t.vf
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr8r.tfm
+INPUT ./images/federated learning.jpg
+INPUT ./images/federated learning.jpg
+INPUT ./images/federated learning.jpg
+INPUT ./images/federated learning.jpg
+INPUT ./images/federated learning.jpg
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr7t.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr7t.tfm
 INPUT ./images/centralized.jpg
 INPUT ./images/centralized.jpg
 INPUT ./images/centralized.jpg
@@ -316,7 +319,6 @@ INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx12.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx9.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx7.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr7t.tfm
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmri7t.tfm
 INPUT ./images/flowing.jpg
 INPUT ./images/flowing.jpg
 INPUT ./images/flowing.jpg
@@ -326,19 +328,17 @@ INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ot1pcr.fd
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ot1pcr.fd
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ot1pcr.fd
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/courier/pcrr7t.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmr7t.vf
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr8r.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmr7t.vf
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr8r.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/courier/pcrr7t.vf
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/courier/pcrr8r.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 INPUT /usr/local/texlive/2025/texmf-dist/tex/latex/psnfss/ts1ptm.fd
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr8c.tfm
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/courier/pcrr7t.vf
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/courier/pcrr8r.tfm
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmr7t.vf
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr8r.tfm
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmr7t.vf
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr8r.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmr8c.vf
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmri7t.vf
-INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmri8r.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx10.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx8.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx5.tfm
@@ -357,7 +357,21 @@ INPUT ./images/centralized-run2.jpg
 INPUT ./images/centralized-run2.jpg
 INPUT ./images/centralized-run2.jpg
 INPUT ./images/centralized-run2.jpg
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmr6.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmmi6.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmsy6.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmbx6.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam10.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam7.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msam5.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm10.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm7.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/symbols/msbm5.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmb7t.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmr7t.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/cm/cmmib10.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmmib8.tfm
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmmib6.tfm
@@ -403,6 +417,8 @@ INPUT ./images/a=1, client=3, drift= False2.png
 INPUT ./images/a=1, client=3, drift= False2.png
 INPUT ./images/a=1, client=3, drift= False2.png
 INPUT ./images/a=1, client=3, drift= False2.png
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/vf/adobe/times/ptmb7t.vf
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/times/ptmb8r.tfm
 INPUT ./images/sa_drift_non_iid_curves.png
 INPUT ./images/sa_drift_non_iid_curves.png
 INPUT ./images/sa_drift_non_iid_curves.png
@@ -433,27 +449,80 @@ INPUT ./images/a=0.5, client=5, drift= False2.png
 INPUT ./images/a=0.5, client=5, drift= False2.png
 INPUT ./images/a=0.5, client=5, drift= False2.png
 INPUT ./images/a=0.5, client=5, drift= False2.png
-INPUT ./images/comparison_balanced_acc.png
-INPUT ./images/comparison_balanced_acc.png
-INPUT ./images/comparison_balanced_acc.png
-INPUT ./images/comparison_balanced_acc.png
-INPUT ./images/comparison_balanced_acc.png
+INPUT ./images/fedavg_severe_curves.png
+INPUT ./images/fedavg_severe_curves.png
+INPUT ./images/fedavg_severe_curves.png
+INPUT ./images/fedavg_severe_curves.png
+INPUT ./images/fedavg_severe_curves.png
+INPUT ./images/fedavg_severe_terminal_top.png
+INPUT ./images/fedavg_severe_terminal_top.png
+INPUT ./images/fedavg_severe_terminal_top.png
+INPUT ./images/fedavg_severe_terminal_top.png
+INPUT ./images/fedavg_severe_terminal_top.png
+INPUT ./images/fedavg_severe_terminal_bottom.png
+INPUT ./images/fedavg_severe_terminal_bottom.png
+INPUT ./images/fedavg_severe_terminal_bottom.png
+INPUT ./images/fedavg_severe_terminal_bottom.png
+INPUT ./images/fedavg_severe_terminal_bottom.png
+INPUT ./images/decomp_only_severe_curves.png
+INPUT ./images/decomp_only_severe_curves.png
+INPUT ./images/decomp_only_severe_curves.png
+INPUT ./images/decomp_only_severe_curves.png
+INPUT ./images/decomp_only_severe_curves.png
+INPUT ./images/decomp_only_severe_terminal_top.png
+INPUT ./images/decomp_only_severe_terminal_top.png
+INPUT ./images/decomp_only_severe_terminal_top.png
+INPUT ./images/decomp_only_severe_terminal_top.png
+INPUT ./images/decomp_only_severe_terminal_top.png
+INPUT ./images/decomp_only_severe_terminal_bottom.png
+INPUT ./images/decomp_only_severe_terminal_bottom.png
+INPUT ./images/decomp_only_severe_terminal_bottom.png
+INPUT ./images/decomp_only_severe_terminal_bottom.png
+INPUT ./images/decomp_only_severe_terminal_bottom.png
+INPUT ./images/sa_drift_severe_curves.png
+INPUT ./images/sa_drift_severe_curves.png
+INPUT ./images/sa_drift_severe_curves.png
+INPUT ./images/sa_drift_severe_curves.png
+INPUT ./images/sa_drift_severe_curves.png
+INPUT ./images/sa_drift_severe_terminal_top.png
+INPUT ./images/sa_drift_severe_terminal_top.png
+INPUT ./images/sa_drift_severe_terminal_top.png
+INPUT ./images/sa_drift_severe_terminal_top.png
+INPUT ./images/sa_drift_severe_terminal_top.png
+INPUT ./images/sa_drift_severe_terminal_bottom.png
+INPUT ./images/sa_drift_severe_terminal_bottom.png
+INPUT ./images/sa_drift_severe_terminal_bottom.png
+INPUT ./images/sa_drift_severe_terminal_bottom.png
+INPUT ./images/sa_drift_severe_terminal_bottom.png
+INPUT ./images/comparison_balanced_acc_all.png
+INPUT ./images/comparison_balanced_acc_all.png
+INPUT ./images/comparison_balanced_acc_all.png
+INPUT ./images/comparison_balanced_acc_all.png
+INPUT ./images/comparison_balanced_acc_all.png
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/courier/pcrr7t.tfm
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/tfm/adobe/courier/pcrr7t.tfm
 INPUT ./main-fsai.bbl
 INPUT ./main-fsai.bbl
 INPUT main-fsai.bbl
 INPUT main-fsai.aux
 INPUT ./main-fsai.out
 INPUT ./main-fsai.out
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx10.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmbx12.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cmextra/cmex9.pfb
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi12.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi9.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmmib10.pfb
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr12.pfb
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmr9.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb
+INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy9.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/public/amsfonts/symbols/msbm10.pfb
 INPUT /usr/local/texlive/2025/texmf-dist/fonts/type1/urw/courier/ucrr8a.pfb
